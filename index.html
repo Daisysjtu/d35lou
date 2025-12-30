@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上海交通大学 D35 宿舍楼 - 分布式房间状态监控系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        
+        .header {
+            background-color: #003366;
+            color: white;
+            padding: 20px 30px;
+            border-bottom: 5px solid #b31b1b;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .header h1:before {
+            content: "🏫";
+            margin-right: 15px;
+            font-size: 32px;
+        }
+        
+        .header h2 {
+            font-size: 20px;
+            font-weight: 500;
+            color: #e6f2ff;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            color: #b3d9ff;
+            margin-bottom: 5px;
+        }
+        
+        .emergency-info {
+            background-color: #fff8e6;
+            padding: 15px 30px;
+            border-bottom: 1px solid #ffcc80;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        
+        .emergency-info div {
+            margin: 5px 0;
+        }
+        
+        .phone-number {
+            color: #cc3300;
+            font-weight: bold;
+            font-size: 16px;
+            margin-left: 5px;
+        }
+        
+        .note {
+            font-size: 14px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .sync-panel {
+            background-color: #e8f4fd;
+            padding: 15px 30px;
+            border-bottom: 1px solid #c2e0ff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .sync-status {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+        
+        .sync-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .syncing { background-color: #ffcc00; animation: pulse 1.5s infinite; }
+        .synced { background-color: #28a745; }
+        .error { background-color: #dc3545; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .last-sync {
+            font-size: 13px;
+            color: #666;
+            margin-left: 15px;
+        }
+        
+        .user-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-id {
+            background-color: #4a90e2;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .control-panel {
+            padding: 20px 30px;
+            background-color: #f0f5ff;
+            border-bottom: 1px solid #d9e4ff;
+        }
+        
+        .status-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            margin-right: 10px;
+        }
+        
+        .status-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .unchecked { background-color: #f8f9fa; color: #6c757d; }
+        .checked-normal { background-color: #d4edda; }
+        .checked-abnormal { background-color: #f8d7da; }
+        .checked-reported { background-color: #fff3cd; }
+        .noise { background-color: #cce5ff; }
+        
+        .facility-color {
+            background-color: #e9ecef;
+            color: #495057;
+        }
+        
+        .instructions {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .floor-container {
+            padding: 20px;
+            overflow-x: auto;
+        }
+        
+        .floor {
+            margin-bottom: 35px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #f9f9f9;
+        }
+        
+        .floor-header {
+            background-color: #2c5282;
+            color: white;
+            padding: 12px 20px;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .floor-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .floor-number {
+            background-color: #4a90e2;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+        }
+        
+        .floor-stats {
+            font-size: 14px;
+            font-weight: normal;
+            color: #e6f2ff;
+        }
+        
+        .floor-layout {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: nowrap;
+        }
+        
+        .row-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .row-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+            padding-left: 5px;
+            font-weight: 500;
+        }
+        
+        .room {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 75px;
+            min-width: 75px;
+            flex: 1;
+            position: relative;
+        }
+        
+        .room:hover:not(.facility) {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .room-id {
+            font-weight: 600;
+            margin-bottom: 3px;
+            font-size: 14px;
+        }
+        
+        .room-status {
+            font-size: 11px;
+            margin-top: 3px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            background-color: rgba(255, 255, 255, 0.7);
+            white-space: nowrap;
+        }
+        
+        .last-updated-by {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            font-size: 10px;
+            color: #666;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 1px 4px;
+            border-radius: 2px;
+        }
+        
+        /* 特殊设施样式 */
+        .facility {
+            background-color: #e9ecef;
+            border: 2px dashed #adb5bd;
+            cursor: default;
+            min-width: 90px;
+        }
+        
+        .toilet {
+            background-color: #e7f5ff;
+            border-color: #4dabf7;
+        }
+        
+        .elevator {
+            background-color: #f8f9fa;
+            border-color: #adb5bd;
+        }
+        
+        .common-area {
+            background-color: #f3e8ff;
+            border-color: #9c36b5;
+        }
+        
+        .footer {
+            background-color: #f0f5ff;
+            padding: 20px 30px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            border-top: 1px solid #d9e4ff;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+        }
+        
+        /* 统计信息样式 */
+        .stats-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 15px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            min-width: 120px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .unchecked .stat-value { color: #6c757d; }
+        .checked-normal .stat-value { color: #28a745; }
+        .checked-abnormal .stat-value { color: #dc3545; }
+        .checked-reported .stat-value { color: #ffc107; }
+        .noise .stat-value { color: #17a2b8; }
+        
+        /* 操作按钮样式 */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            padding: 8px 16px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .action-btn:hover {
+            background-color: #3a7bc8;
+        }
+        
+        .action-btn.sync {
+            background-color: #17a2b8;
+        }
+        
+        .action-btn.sync:hover {
+            background-color: #138496;
+        }
+        
+        .action-btn.reset {
+            background-color: #6c757d;
+        }
+        
+        .action-btn.reset:hover {
+            background-color: #5a6268;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .row {
+                flex-wrap: wrap;
+            }
+            
+            .room {
+                min-width: 70px;
+                min-height: 70px;
+                padding: 8px 4px;
+            }
+            
+            .facility {
+                min-width: 80px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 22px;
+            }
+            
+            .header h2 {
+                font-size: 18px;
+            }
+            
+            .status-legend {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .floor-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .room {
+                min-width: 65px;
+                min-height: 65px;
+                font-size: 12px;
+                padding: 6px 3px;
+            }
+            
+            .facility {
+                min-width: 70px;
+            }
+            
+            .room-id {
+                font-size: 12px;
+            }
+            
+            .room-status {
+                font-size: 10px;
+                padding: 1px 3px;
+            }
+            
+            .sync-panel {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+        
+        /* 宿舍编号样式 */
+        .dorm-number {
+            font-size: 12px;
+            color: #555;
+            margin-top: 2px;
+        }
+        
+        /* 走廊标识 */
+        .corridor {
+            background-color: #f1f3f5;
+            border: 2px dotted #868e96;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+            margin: 5px 0;
+        }
+        
+        /* 数据管理面板 */
+        .data-management {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .data-management h4 {
+            margin-bottom: 10px;
+            color: #495057;
+            font-size: 16px;
+        }
+        
+        .data-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .data-btn {
+            padding: 6px 12px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .data-btn:hover {
+            background-color: #5a6268;
+        }
+        
+        .data-btn.export {
+            background-color: #28a745;
+        }
+        
+        .data-btn.export:hover {
+            background-color: #218838;
+        }
+        
+        .data-btn.import {
+            background-color: #17a2b8;
+        }
+        
+        .data-btn.import:hover {
+            background-color: #138496;
+        }
+        
+        /* 用户活动记录 */
+        .activity-log {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            border: 1px solid #dee2e6;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .activity-log h4 {
+            margin-bottom: 10px;
+            color: #495057;
+            font-size: 16px;
+        }
+        
+        .activity-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-time {
+            color: #999;
+            font-size: 12px;
+        }
+        
+        .activity-user {
+            font-weight: bold;
+            color: #4a90e2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>上海交通大学 D35 宿舍楼 - 分布式房间状态监控系统</h1>
+            <h2>本地化部署版本 - 多用户数据同步</h2>
+            <p>基于LocalStorage的数据持久化系统，支持多设备同步</p>
+        </div>
+        
+        <div class="emergency-info">
+            <div>
+                <strong>校园报警电话：</strong><span class="phone-number">54749110</span>
+            </div>
+            <div>
+                <strong>公安报警电话：</strong><span class="phone-number">110</span>
+            </div>
+            <div>
+                <strong>火警电话：</strong><span class="phone-number">119</span>
+            </div>
+            <div class="note">
+                <strong>系统说明：</strong>数据本地存储，每30秒自动同步，支持多用户协作
+            </div>
+        </div>
+        
+        <div class="sync-panel">
+            <div class="sync-status">
+                <div class="sync-indicator synced" id="syncIndicator"></div>
+                <span id="syncStatusText">数据已同步</span>
+                <div class="last-sync" id="lastSyncTime">上次同步: 刚刚</div>
+            </div>
+            
+            <div class="user-controls">
+                <div>用户ID: <span class="user-id" id="userIdDisplay">加载中...</span></div>
+                <button class="action-btn sync" id="forceSync">立即同步</button>
+                <button class="action-btn" id="changeUser">切换用户</button>
+            </div>
+        </div>
+        
+        <div class="control-panel">
+            <h3>房间状态图例：</h3>
+            <div class="status-legend">
+                <div class="status-item">
+                    <div class="status-color unchecked"></div>
+                    <span>未检查</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-color checked-normal"></div>
+                    <span>已检查，正常</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-color checked-abnormal"></div>
+                    <span>已检查，异常</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-color checked-reported"></div>
+                    <span>已检查，已报修</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-color noise"></div>
+                    <span>正常，但附近有噪音</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-color facility-color"></div>
+                    <span>公共设施</span>
+                </div>
+            </div>
+            
+            <div class="instructions">
+                <p><strong>使用说明：</strong>点击宿舍房间可以循环切换房间状态。所有更改会自动保存到本地，并与其他用户同步。</p>
+                <p><strong>同步机制：</strong>系统每30秒自动同步数据。房间上的标签显示最后修改者。</p>
+                
+                <div class="action-buttons">
+                    <button class="action-btn" id="markAllNormal">标记所有为"已检查，正常"</button>
+                    <button class="action-btn reset" id="resetAll">重置所有为"未检查"</button>
+                </div>
+                
+                <div class="data-management">
+                    <h4>数据管理</h4>
+                    <div class="data-actions">
+                        <button class="data-btn export" id="exportData">导出数据 (JSON)</button>
+                        <button class="data-btn import" id="importData">导入数据</button>
+                        <button class="data-btn" id="clearLocalData">清除本地数据</button>
+                        <input type="file" id="importFile" accept=".json" style="display:none;">
+                    </div>
+                </div>
+                
+                <div class="activity-log">
+                    <h4>最近活动记录</h4>
+                    <div id="activityList">
+                        <!-- 活动记录将在这里动态显示 -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stats-panel" id="statsPanel">
+                <!-- 统计信息将在这里动态生成 -->
+            </div>
+        </div>
+        
+        <div class="floor-container" id="floorContainer">
+            <!-- 楼层将通过JavaScript动态生成 -->
+        </div>
+        
+        <div class="footer">
+            <p>上海交通大学保卫处</p>
+            <p>本地化部署版本 | 数据自动保存与同步 | 最后更新: <span id="dataVersion">加载中...</span></p>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 系统配置 ====================
+        const CONFIG = {
+            STORAGE_KEY: 'SJTU_D35_DORM_SYSTEM',
+            SYNC_INTERVAL: 30000, // 30秒自动同步
+            ACTIVITY_MAX_ITEMS: 10,
+            SYSTEM_VERSION: '1.0.0'
+        };
+        
+        // ==================== 房间状态定义 ====================
+        const ROOM_STATUSES = [
+            { id: 0, name: "未检查", className: "unchecked" },
+            { id: 1, name: "已检查，正常", className: "checked-normal" },
+            { id: 2, name: "已检查，异常", className: "checked-abnormal" },
+            { id: 3, name: "已检查，已报修", className: "checked-reported" },
+            { id: 4, name: "正常，但附近有噪音", className: "noise" }
+        ];
+        
+        // ==================== 楼层布局数据 ====================
+        const FLOOR_LAYOUT = {
+            row1: { count: 11, type: 'dorm', title: '宿舍房间 (1-11号)' },
+            row2: { count: 10, type: 'dorm', title: '宿舍房间 (12-21号)' },
+            row3: {
+                items: [
+                    { type: 'toilet', label: '卫生间' },
+                    { type: 'elevator', label: '电梯间' },
+                    { type: 'dorm', count: 2 },
+                    { type: 'toilet', label: '卫生间' },
+                    { type: 'dorm', count: 4 },
+                    { type: 'common-area', label: '交流区' },
+                    { type: 'elevator', label: '电梯间' },
+                    { type: 'toilet', label: '卫生间' }
+                ],
+                title: '公共区域与宿舍 (22-27号)'
+            }
+        };
+        
+        // ==================== 全局变量 ====================
+        let currentUser = null;
+        let systemData = null;
+        let syncTimer = null;
+        let isSyncing = false;
+        
+        // ==================== 用户管理 ====================
+        function initializeUser() {
+            // 尝试从本地存储获取用户ID
+            let userId = localStorage.getItem('SJTU_DORM_USER_ID');
+            
+            if (!userId) {
+                // 生成新用户ID
+                userId = 'USER_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                localStorage.setItem('SJTU_DORM_USER_ID', userId);
+            }
+            
+            currentUser = {
+                id: userId,
+                name: userId.split('_')[0] + '#' + userId.split('_')[2],
+                lastActive: new Date().toISOString()
+            };
+            
+            document.getElementById('userIdDisplay').textContent = currentUser.name;
+            
+            return currentUser;
+        }
+        
+        // ==================== 数据管理系统 ====================
+        
+        // 初始化系统数据
+        function initializeSystemData() {
+            // 尝试从本地存储加载数据
+            const savedData = localStorage.getItem(CONFIG.STORAGE_KEY);
+            
+            if (savedData) {
+                try {
+                    systemData = JSON.parse(savedData);
+                    console.log('从本地存储加载数据成功');
+                    
+                    // 验证数据完整性
+                    if (!validateSystemData(systemData)) {
+                        console.warn('数据验证失败，重新初始化');
+                        systemData = createNewSystemData();
+                    } else {
+                        // 更新数据版本
+                        updateDataVersion();
+                    }
+                } catch (e) {
+                    console.error('解析本地数据失败:', e);
+                    systemData = createNewSystemData();
+                }
+            } else {
+                // 创建新的系统数据
+                systemData = createNewSystemData();
+            }
+            
+            // 保存初始数据
+            saveSystemData();
+            
+            return systemData;
+        }
+        
+        // 创建新的系统数据
+        function createNewSystemData() {
+            const floors = [];
+            
+            // 为每个楼层生成数据（从13层到1层）
+            for (let floorNum = 13; floorNum >= 1; floorNum--) {
+                const floorRooms = [];
+                
+                // 第一行：11个宿舍
+                for (let i = 1; i <= FLOOR_LAYOUT.row1.count; i++) {
+                    const roomNum = floorNum * 100 + i;
+                    
+                    floorRooms.push({
+                        id: roomNum,
+                        floor: floorNum,
+                        number: i,
+                        type: 'dorm',
+                        status: 0, // 默认未检查
+                        label: `${roomNum}室`,
+                        displayLabel: `${i}号`,
+                        lastUpdated: null,
+                        lastUpdatedBy: null,
+                        history: []
+                    });
+                }
+                
+                // 第二行：10个宿舍
+                for (let i = 1; i <= FLOOR_LAYOUT.row2.count; i++) {
+                    const roomNum = floorNum * 100 + FLOOR_LAYOUT.row1.count + i;
+                    
+                    floorRooms.push({
+                        id: roomNum,
+                        floor: floorNum,
+                        number: FLOOR_LAYOUT.row1.count + i,
+                        type: 'dorm',
+                        status: 0,
+                        label: `${roomNum}室`,
+                        displayLabel: `${FLOOR_LAYOUT.row1.count + i}号`,
+                        lastUpdated: null,
+                        lastUpdatedBy: null,
+                        history: []
+                    });
+                }
+                
+                // 第三行：公共设施和6个宿舍
+                let dormCount = 0;
+                let itemIndex = 0;
+                
+                FLOOR_LAYOUT.row3.items.forEach(item => {
+                    if (item.type === 'dorm') {
+                        // 宿舍房间
+                        for (let i = 1; i <= item.count; i++) {
+                            dormCount++;
+                            const roomNum = floorNum * 100 + FLOOR_LAYOUT.row1.count + FLOOR_LAYOUT.row2.count + dormCount;
+                            
+                            floorRooms.push({
+                                id: roomNum,
+                                floor: floorNum,
+                                number: FLOOR_LAYOUT.row1.count + FLOOR_LAYOUT.row2.count + dormCount,
+                                type: 'dorm',
+                                status: 0,
+                                label: `${roomNum}室`,
+                                displayLabel: `${FLOOR_LAYOUT.row1.count + FLOOR_LAYOUT.row2.count + dormCount}号`,
+                                lastUpdated: null,
+                                lastUpdatedBy: null,
+                                history: []
+                            });
+                        }
+                    } else {
+                        // 公共设施
+                        itemIndex++;
+                        floorRooms.push({
+                            id: `${floorNum}-${item.type}-${itemIndex}`,
+                            floor: floorNum,
+                            type: item.type,
+                            label: item.label,
+                            isFacility: true
+                        });
+                    }
+                });
+                
+                floors.push({
+                    number: floorNum,
+                    rooms: floorRooms
+                });
+            }
+            
+            return {
+                version: CONFIG.SYSTEM_VERSION,
+                created: new Date().toISOString(),
+                lastUpdated: new Date().toISOString(),
+                floors: floors,
+                activityLog: [],
+                statistics: {
+                    totalChanges: 0,
+                    totalRooms: 0,
+                    statusCount: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 }
+                }
+            };
+        }
+        
+        // 验证系统数据完整性
+        function validateSystemData(data) {
+            if (!data || typeof data !== 'object') return false;
+            if (!data.version || !data.floors || !Array.isArray(data.floors)) return false;
+            if (data.floors.length !== 13) return false; // 13层楼
+            
+            // 检查每层楼房间数量
+            for (let floor of data.floors) {
+                if (!floor.rooms || !Array.isArray(floor.rooms)) return false;
+                
+                // 每层楼应该有27个宿舍 + 公共设施
+                const dormCount = floor.rooms.filter(r => r.type === 'dorm').length;
+                if (dormCount !== 27) return false;
+            }
+            
+            return true;
+        }
+        
+        // 保存系统数据到本地存储
+        function saveSystemData() {
+            if (!systemData) return;
+            
+            systemData.lastUpdated = new Date().toISOString();
+            
+            try {
+                localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(systemData));
+                console.log('数据保存成功');
+                
+                // 更新显示
+                updateDataVersionDisplay();
+                
+                return true;
+            } catch (e) {
+                console.error('数据保存失败:', e);
+                showNotification('数据保存失败: ' + e.message, 'error');
+                return false;
+            }
+        }
+        
+        // 更新数据版本显示
+        function updateDataVersion() {
+            if (!systemData) return;
+            
+            systemData.version = CONFIG.SYSTEM_VERSION;
+            updateDataVersionDisplay();
+        }
+        
+        function updateDataVersionDisplay() {
+            if (!systemData) return;
+            
+            const date = new Date(systemData.lastUpdated);
+            const timeStr = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('dataVersion').textContent = 
+                `v${systemData.version} (${timeStr})`;
+        }
+        
+        // 同步数据（模拟多用户同步）
+        function syncData() {
+            if (isSyncing) return;
+            
+            isSyncing = true;
+            updateSyncStatus('syncing', '同步中...');
+            
+            // 模拟网络延迟
+            setTimeout(() => {
+                // 在实际应用中，这里会从服务器获取最新数据
+                // 现在只是模拟同步过程
+                
+                // 更新同步时间
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                document.getElementById('lastSyncTime').textContent = `上次同步: ${timeStr}`;
+                
+                isSyncing = false;
+                updateSyncStatus('synced', '数据已同步');
+                
+                // 触发数据检查（查看是否有其他用户更新）
+                checkForExternalChanges();
+                
+            }, 500);
+        }
+        
+        // 检查外部变更（模拟其他用户修改）
+        function checkForExternalChanges() {
+            // 在实际应用中，这里会检查服务器是否有新版本
+            // 现在只是随机模拟一些外部变更（10%概率）
+            if (Math.random() < 0.1) {
+                simulateExternalChange();
+            }
+        }
+        
+        // 模拟外部变更（其他用户修改）
+        function simulateExternalChange() {
+            // 随机选择一个房间并修改状态
+            const floorIndex = Math.floor(Math.random() * systemData.floors.length);
+            const floor = systemData.floors[floorIndex];
+            
+            const dormRooms = floor.rooms.filter(r => r.type === 'dorm');
+            if (dormRooms.length === 0) return;
+            
+            const roomIndex = Math.floor(Math.random() * dormRooms.length);
+            const room = dormRooms[roomIndex];
+            
+            // 随机新状态
+            const newStatus = Math.floor(Math.random() * ROOM_STATUSES.length);
+            
+            // 记录变更
+            const changeRecord = {
+                timestamp: new Date().toISOString(),
+                user: '外部用户',
+                roomId: room.id,
+                fromStatus: room.status,
+                toStatus: newStatus
+            };
+            
+            // 更新房间状态
+            room.status = newStatus;
+            room.lastUpdated = new Date().toISOString();
+            room.lastUpdatedBy = '外部用户';
+            
+            // 添加到历史记录
+            if (!room.history) room.history = [];
+            room.history.push(changeRecord);
+            
+            // 添加到活动日志
+            addActivityLog(`外部用户 修改了房间 ${room.id} 的状态`);
+            
+            // 保存并重新渲染
+            saveSystemData();
+            renderFloors();
+            renderStatsPanel();
+            renderActivityLog();
+            
+            showNotification(`检测到外部更新: 房间 ${room.id} 状态已变更`, 'info');
+        }
+        
+        // 更新同步状态显示
+        function updateSyncStatus(status, text) {
+            const indicator = document.getElementById('syncIndicator');
+            const statusText = document.getElementById('syncStatusText');
+            
+            // 移除所有状态类
+            indicator.classList.remove('syncing', 'synced', 'error');
+            
+            // 添加新状态类
+            indicator.classList.add(status);
+            statusText.textContent = text;
+        }
+        
+        // ==================== 房间状态管理 ====================
+        
+        // 更新房间状态
+        function updateRoomStatus(roomId, newStatus) {
+            if (!systemData || !currentUser) return false;
+            
+            // 查找房间
+            let targetRoom = null;
+            let targetFloor = null;
+            
+            for (let floor of systemData.floors) {
+                const room = floor.rooms.find(r => r.id === roomId);
+                if (room && room.type === 'dorm') {
+                    targetRoom = room;
+                    targetFloor = floor;
+                    break;
+                }
+            }
+            
+            if (!targetRoom) {
+                console.error('未找到房间:', roomId);
+                return false;
+            }
+            
+            const oldStatus = targetRoom.status;
+            
+            // 记录变更
+            const changeRecord = {
+                timestamp: new Date().toISOString(),
+                user: currentUser.name,
+                roomId: roomId,
+                fromStatus: oldStatus,
+                toStatus: newStatus
+            };
+            
+            // 更新房间数据
+            targetRoom.status = newStatus;
+            targetRoom.lastUpdated = new Date().toISOString();
+            targetRoom.lastUpdatedBy = currentUser.name;
+            
+            // 添加到历史记录
+            if (!targetRoom.history) targetRoom.history = [];
+            targetRoom.history.push(changeRecord);
+            
+            // 更新统计
+            systemData.statistics.totalChanges++;
+            
+            // 添加到活动日志
+            addActivityLog(`${currentUser.name} 修改了房间 ${roomId} 的状态`);
+            
+            // 保存数据
+            saveSystemData();
+            
+            // 触发同步
+            if (!isSyncing) {
+                syncData();
+            }
+            
+            return true;
+        }
+        
+        // 添加活动日志
+        function addActivityLog(message) {
+            if (!systemData) return;
+            
+            const logEntry = {
+                timestamp: new Date().toISOString(),
+                message: message,
+                user: currentUser ? currentUser.name : '系统'
+            };
+            
+            systemData.activityLog.unshift(logEntry);
+            
+            // 限制日志数量
+            if (systemData.activityLog.length > CONFIG.ACTIVITY_MAX_ITEMS * 3) {
+                systemData.activityLog = systemData.activityLog.slice(0, CONFIG.ACTIVITY_MAX_ITEMS);
+            }
+            
+            // 更新显示
+            renderActivityLog();
+        }
+        
+        // ==================== 渲染函数 ====================
+        
+        // 渲染楼层
+        function renderFloors() {
+            const container = document.getElementById('floorContainer');
+            if (!container || !systemData) return;
+            
+            container.innerHTML = '';
+            
+            systemData.floors.forEach(floor => {
+                const floorElement = document.createElement('div');
+                floorElement.className = 'floor';
+                
+                // 楼层统计
+                const floorStats = calculateFloorStats(floor);
+                
+                // 楼层标题
+                const floorHeader = document.createElement('div');
+                floorHeader.className = 'floor-header';
+                floorHeader.innerHTML = `
+                    <div class="floor-info">
+                        <div class="floor-number">${floor.number}</div>
+                        <span>第 ${floor.number} 层 - 宿舍房间分布</span>
+                    </div>
+                    <div class="floor-stats">
+                        宿舍：${floorStats.dormCount}间 | 
+                        正常：${floorStats.normal}间 | 
+                        异常：${floorStats.abnormal}间
+                    </div>
+                `;
+                
+                // 楼层布局
+                const floorLayout = document.createElement('div');
+                floorLayout.className = 'floor-layout';
+                
+                // 第一行：11个宿舍
+                const row1Wrapper = document.createElement('div');
+                row1Wrapper.className = 'row-wrapper';
+                row1Wrapper.innerHTML = `<div class="row-title">${FLOOR_LAYOUT.row1.title}</div>`;
+                
+                const row1 = document.createElement('div');
+                row1.className = 'row';
+                
+                // 获取第一行的宿舍（前11个）
+                const row1Rooms = floor.rooms.filter(r => r.type === 'dorm' && r.number <= 11);
+                row1Rooms.sort((a, b) => a.number - b.number);
+                
+                row1Rooms.forEach(room => {
+                    const roomElement = createRoomElement(room);
+                    row1.appendChild(roomElement);
+                });
+                
+                row1Wrapper.appendChild(row1);
+                
+                // 第二行：10个宿舍（12-21号）
+                const row2Wrapper = document.createElement('div');
+                row2Wrapper.className = 'row-wrapper';
+                row2Wrapper.innerHTML = `<div class="row-title">${FLOOR_LAYOUT.row2.title}</div>`;
+                
+                const row2 = document.createElement('div');
+                row2.className = 'row';
+                
+                // 获取第二行的宿舍（12-21号）
+                const row2Rooms = floor.rooms.filter(r => r.type === 'dorm' && r.number >= 12 && r.number <= 21);
+                row2Rooms.sort((a, b) => a.number - b.number);
+                
+                row2Rooms.forEach(room => {
+                    const roomElement = createRoomElement(room);
+                    row2.appendChild(roomElement);
+                });
+                
+                row2Wrapper.appendChild(row2);
+                
+                // 走廊标识
+                const corridor = document.createElement('div');
+                corridor.className = 'corridor';
+                corridor.textContent = '━━━━━━ 走廊 ━━━━━━';
+                
+                // 第三行：公共设施和6个宿舍（22-27号）
+                const row3Wrapper = document.createElement('div');
+                row3Wrapper.className = 'row-wrapper';
+                row3Wrapper.innerHTML = `<div class="row-title">${FLOOR_LAYOUT.row3.title}</div>`;
+                
+                const row3 = document.createElement('div');
+                row3.className = 'row';
+                
+                // 获取第三行的所有房间（包括公共设施和宿舍22-27号）
+                // 这里我们需要按照FLOOR_LAYOUT.row3.items的顺序来创建
+                
+                // 获取22-27号宿舍
+                const row3Dorms = floor.rooms.filter(r => r.type === 'dorm' && r.number >= 22 && r.number <= 27);
+                row3Dorms.sort((a, b) => a.number - b.number);
+                
+                // 获取公共设施
+                const facilities = floor.rooms.filter(r => r.isFacility);
+                
+                // 按照布局顺序创建元素
+                let dormIndex = 0;
+                
+                FLOOR_LAYOUT.row3.items.forEach(item => {
+                    if (item.type === 'dorm') {
+                        // 添加宿舍
+                        for (let i = 0; i < item.count; i++) {
+                            if (dormIndex < row3Dorms.length) {
+                                const roomElement = createRoomElement(row3Dorms[dormIndex]);
+                                row3.appendChild(roomElement);
+                                dormIndex++;
+                            }
+                        }
+                    } else {
+                        // 添加公共设施
+                        // 查找对应类型的公共设施
+                        const facility = facilities.find(f => f.type === item.type);
+                        if (facility) {
+                            const facilityElement = createRoomElement(facility);
+                            row3.appendChild(facilityElement);
+                        }
+                    }
+                });
+                
+                row3Wrapper.appendChild(row3);
+                
+                floorLayout.appendChild(row1Wrapper);
+                floorLayout.appendChild(row2Wrapper);
+                floorLayout.appendChild(corridor);
+                floorLayout.appendChild(row3Wrapper);
+                
+                floorElement.appendChild(floorHeader);
+                floorElement.appendChild(floorLayout);
+                container.appendChild(floorElement);
+            });
+        }
+        
+        // 计算楼层统计
+        function calculateFloorStats(floor) {
+            let dormCount = 0;
+            let normal = 0;
+            let abnormal = 0;
+            
+            floor.rooms.forEach(room => {
+                if (room.type === 'dorm') {
+                    dormCount++;
+                    
+                    if (room.status === 1 || room.status === 4) {
+                        normal++;
+                    } else if (room.status === 2) {
+                        abnormal++;
+                    }
+                }
+            });
+            
+            return { dormCount, normal, abnormal };
+        }
+        
+        // 创建房间元素
+        function createRoomElement(room) {
+            const roomElement = document.createElement('div');
+            
+            if (room.isFacility) {
+                // 公共设施
+                roomElement.className = `room facility ${room.type}`;
+                let icon = '🏢';
+                if (room.type === 'toilet') icon = '🚻';
+                else if (room.type === 'elevator') icon = '🛗';
+                else if (room.type === 'common-area') icon = '💬';
+                
+                roomElement.innerHTML = `
+                    <div class="room-id">${room.label}</div>
+                    <div style="font-size:11px; margin-top:3px;">${icon}</div>
+                `;
+            } else {
+                // 宿舍房间
+                const status = ROOM_STATUSES[room.status];
+                roomElement.className = `room ${status.className}`;
+                roomElement.dataset.id = room.id;
+                roomElement.dataset.status = room.status;
+                
+                let lastUpdatedByHtml = '';
+                if (room.lastUpdatedBy) {
+                    lastUpdatedByHtml = `<div class="last-updated-by">${room.lastUpdatedBy}</div>`;
+                }
+                
+                roomElement.innerHTML = `
+                    ${lastUpdatedByHtml}
+                    <div class="room-id">${room.label}</div>
+                    <div class="dorm-number">${room.displayLabel || room.number + '号'}</div>
+                    <div class="room-status">${status.name}</div>
+                `;
+                
+                // 添加点击事件切换状态
+                roomElement.addEventListener('click', function() {
+                    changeRoomStatus(this);
+                });
+            }
+            
+            return roomElement;
+        }
+        
+        // 渲染统计面板
+        function renderStatsPanel() {
+            const statsPanel = document.getElementById('statsPanel');
+            if (!statsPanel || !systemData) return;
+            
+            // 重新计算统计
+            let totalRooms = 0;
+            let unchecked = 0;
+            let checkedNormal = 0;
+            let checkedAbnormal = 0;
+            let checkedReported = 0;
+            let noise = 0;
+            
+            systemData.floors.forEach(floor => {
+                floor.rooms.forEach(room => {
+                    if (room.type === 'dorm') {
+                        totalRooms++;
+                        
+                        switch(room.status) {
+                            case 0: unchecked++; break;
+                            case 1: checkedNormal++; break;
+                            case 2: checkedAbnormal++; break;
+                            case 3: checkedReported++; break;
+                            case 4: noise++; break;
+                        }
+                    }
+                });
+            });
+            
+            statsPanel.innerHTML = `
+                <div class="stat-item unchecked">
+                    <div class="stat-value">${unchecked}</div>
+                    <div class="stat-label">未检查</div>
+                </div>
+                <div class="stat-item checked-normal">
+                    <div class="stat-value">${checkedNormal}</div>
+                    <div class="stat-label">已检查，正常</div>
+                </div>
+                <div class="stat-item checked-abnormal">
+                    <div class="stat-value">${checkedAbnormal}</div>
+                    <div class="stat-label">已检查，异常</div>
+                </div>
+                <div class="stat-item checked-reported">
+                    <div class="stat-value">${checkedReported}</div>
+                    <div class="stat-label">已检查，已报修</div>
+                </div>
+                <div class="stat-item noise">
+                    <div class="stat-value">${noise}</div>
+                    <div class="stat-label">附近有噪音</div>
+                </div>
+                <div class="stat-item" style="background-color:#f8f9fa;">
+                    <div class="stat-value">${totalRooms}</div>
+                    <div class="stat-label">总房间数</div>
+                </div>
+            `;
+        }
+        
+        // 渲染活动日志
+        function renderActivityLog() {
+            const activityList = document.getElementById('activityList');
+            if (!activityList || !systemData) return;
+            
+            activityList.innerHTML = '';
+            
+            const recentActivities = systemData.activityLog.slice(0, CONFIG.ACTIVITY_MAX_ITEMS);
+            
+            if (recentActivities.length === 0) {
+                activityList.innerHTML = '<div class="activity-item">暂无活动记录</div>';
+                return;
+            }
+            
+            recentActivities.forEach(activity => {
+                const activityItem = document.createElement('div');
+                activityItem.className = 'activity-item';
+                
+                const date = new Date(activity.timestamp);
+                const timeStr = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                
+                activityItem.innerHTML = `
+                    <div><span class="activity-user">${activity.user}</span> ${activity.message}</div>
+                    <div class="activity-time">${timeStr}</div>
+                `;
+                
+                activityList.appendChild(activityItem);
+            });
+        }
+        
+        // ==================== 事件处理 ====================
+        
+        // 改变房间状态
+        function changeRoomStatus(roomElement) {
+            const currentStatus = parseInt(roomElement.dataset.status);
+            const newStatus = (currentStatus + 1) % ROOM_STATUSES.length;
+            const roomId = roomElement.querySelector('.room-id').textContent;
+            
+            // 更新房间状态
+            const success = updateRoomStatus(parseInt(roomId), newStatus);
+            
+            if (success) {
+                // 更新UI
+                const newStatusInfo = ROOM_STATUSES[newStatus];
+                
+                roomElement.dataset.status = newStatus;
+                
+                // 移除所有状态类
+                ROOM_STATUSES.forEach(status => {
+                    roomElement.classList.remove(status.className);
+                });
+                
+                // 添加新状态类
+                roomElement.classList.add(newStatusInfo.className);
+                
+                // 更新状态文本
+                const statusElement = roomElement.querySelector('.room-status');
+                statusElement.textContent = newStatusInfo.name;
+                
+                // 更新最后修改者
+                const lastUpdatedByElement = roomElement.querySelector('.last-updated-by');
+                if (lastUpdatedByElement) {
+                    lastUpdatedByElement.textContent = currentUser.name;
+                } else {
+                    roomElement.innerHTML = `
+                        <div class="last-updated-by">${currentUser.name}</div>
+                        ${roomElement.innerHTML}
+                    `;
+                }
+                
+                // 更新统计
+                renderStatsPanel();
+                
+                // 显示通知
+                showNotification(`房间 ${roomId} 状态已更新为: ${newStatusInfo.name}`, 'success');
+            }
+        }
+        
+        // 标记所有房间为正常
+        function markAllNormal() {
+            if (!systemData || !currentUser) return;
+            
+            let changedCount = 0;
+            
+            systemData.floors.forEach(floor => {
+                floor.rooms.forEach(room => {
+                    if (room.type === 'dorm' && room.status !== 1) {
+                        room.status = 1;
+                        room.lastUpdated = new Date().toISOString();
+                        room.lastUpdatedBy = currentUser.name;
+                        changedCount++;
+                    }
+                });
+            });
+            
+            if (changedCount > 0) {
+                addActivityLog(`${currentUser.name} 标记了所有房间为"已检查，正常"`);
+                saveSystemData();
+                renderFloors();
+                renderStatsPanel();
+                syncData();
+                showNotification(`已标记 ${changedCount} 个房间为"已检查，正常"`, 'success');
+            }
+        }
+        
+        // 重置所有房间为未检查
+        function resetAll() {
+            if (!systemData || !currentUser) return;
+            
+            let changedCount = 0;
+            
+            systemData.floors.forEach(floor => {
+                floor.rooms.forEach(room => {
+                    if (room.type === 'dorm' && room.status !== 0) {
+                        room.status = 0;
+                        room.lastUpdated = new Date().toISOString();
+                        room.lastUpdatedBy = currentUser.name;
+                        changedCount++;
+                    }
+                });
+            });
+            
+            if (changedCount > 0) {
+                addActivityLog(`${currentUser.name} 重置了所有房间为"未检查"`);
+                saveSystemData();
+                renderFloors();
+                renderStatsPanel();
+                syncData();
+                showNotification(`已重置 ${changedCount} 个房间为"未检查"`, 'success');
+            }
+        }
+        
+        // 导出数据
+        function exportData() {
+            if (!systemData) return;
+            
+            const dataStr = JSON.stringify(systemData, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `SJTU_D35_宿舍数据_${new Date().toISOString().split('T')[0]}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            
+            showNotification('数据导出成功', 'success');
+        }
+        
+        // 导入数据
+        function importData() {
+            document.getElementById('importFile').click();
+        }
+        
+        // 清除本地数据
+        function clearLocalData() {
+            if (confirm('确定要清除所有本地数据吗？此操作不可恢复！')) {
+                localStorage.removeItem(CONFIG.STORAGE_KEY);
+                localStorage.removeItem('SJTU_DORM_USER_ID');
+                
+                // 重新初始化系统
+                initializeUser();
+                initializeSystemData();
+                renderFloors();
+                renderStatsPanel();
+                renderActivityLog();
+                
+                showNotification('本地数据已清除，系统已重新初始化', 'info');
+            }
+        }
+        
+        // 显示通知
+        function showNotification(message, type = 'info') {
+            // 创建通知元素
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 5px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 1000;
+                transition: opacity 0.3s;
+                opacity: 0;
+                max-width: 300px;
+                color: white;
+                font-weight: 500;
+            `;
+            
+            // 设置背景色
+            if (type === 'success') {
+                notification.style.backgroundColor = '#28a745';
+            } else if (type === 'error') {
+                notification.style.backgroundColor = '#dc3545';
+            } else if (type === 'warning') {
+                notification.style.backgroundColor = '#ffc107';
+                notification.style.color = '#212529';
+            } else {
+                notification.style.backgroundColor = '#17a2b8';
+            }
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // 显示通知
+            setTimeout(() => {
+                notification.style.opacity = '0.9';
+            }, 10);
+            
+            // 3秒后移除通知
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // ==================== 页面加载初始化 ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化用户
+            currentUser = initializeUser();
+            
+            // 初始化系统数据
+            systemData = initializeSystemData();
+            
+            // 渲染页面
+            renderFloors();
+            renderStatsPanel();
+            renderActivityLog();
+            
+            // 设置自动同步
+            syncTimer = setInterval(syncData, CONFIG.SYNC_INTERVAL);
+            
+            // 绑定按钮事件
+            document.getElementById('forceSync').addEventListener('click', syncData);
+            document.getElementById('changeUser').addEventListener('click', function() {
+                localStorage.removeItem('SJTU_DORM_USER_ID');
+                currentUser = initializeUser();
+                showNotification('用户已切换', 'info');
+            });
+            
+            document.getElementById('markAllNormal').addEventListener('click', markAllNormal);
+            document.getElementById('resetAll').addEventListener('click', resetAll);
+            
+            document.getElementById('exportData').addEventListener('click', exportData);
+            document.getElementById('importData').addEventListener('click', importData);
+            document.getElementById('clearLocalData').addEventListener('click', clearLocalData);
+            
+            // 文件导入处理
+            document.getElementById('importFile').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        
+                        if (validateSystemData(importedData)) {
+                            // 确认导入
+                            if (confirm('确定要导入数据吗？当前数据将被覆盖。')) {
+                                systemData = importedData;
+                                saveSystemData();
+                                renderFloors();
+                                renderStatsPanel();
+                                renderActivityLog();
+                                syncData();
+                                showNotification('数据导入成功', 'success');
+                            }
+                        } else {
+                            showNotification('导入的数据格式不正确', 'error');
+                        }
+                    } catch (error) {
+                        showNotification('导入失败: ' + error.message, 'error');
+                    }
+                };
+                
+                reader.readAsText(file);
+                
+                // 清空文件输入
+                e.target.value = '';
+            });
+            
+            // 初始化同步状态
+            syncData();
+            
+            console.log('系统初始化完成');
+        });
+    </script>
+</body>
+</html>
